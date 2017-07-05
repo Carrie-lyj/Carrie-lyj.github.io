@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        canvas {
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas width="800" height="600"></canvas>
+    <script src="./sky.js"></script>
+    <script src="./bird.js"></script>
+    <script src="./land.js"></script>
+    <script src="./pipe.js"></script>
+    <script>
+        var c = document.querySelector('canvas');
+        var ctx = c.getContext('2d');
+        function loadImg(arr, callback) {
+            var imgList = [];
+            var count = 0;
+            for (var i = 0; i < arr.length; i++) {
+                var img = new Image();
+                img.src = "./images/" + arr[i] + ".png";
+                imgList[arr[i]] = img;
+                img.onload = function () {
+                    count++;
+                    if (count == arr.length) {
+                        callback(imgList);
+                    }
+                }
+            }
+        }
+        {
+            var startT = new Date();
+            var endT = new Date();
+            var offsetT = 0;
+            // 游戏开始时间
+            var gameStart = new Date();
+            // 游戏结束时间
+            var gameOver = 0;
+            var flag = false;
+            var flag1 = false;
+        }
+        loadImg(['birds', 'sky', 'land', 'pipe1', 'pipe2'], function (imgList) {
+            var birdImg = imgList['birds'];
+            var skyImg = imgList['sky'];
+            var landImg = imgList['land'];
+            var topImg = imgList['pipe2'];
+            var bottomImg = imgList['pipe1'];
+
+            var sky1 = new Sky({
+                ctx: ctx,
+                img: skyImg,
+                x: 0,
+                y: 0
+            });
+            var sky2 = new Sky({
+                ctx: ctx,
+                img: skyImg,
+                x: skyImg.width,
+                y: 0
+            });
+            // 创建小鸟
+            var bird = new Bird({
+                ctx: ctx,
+                img: birdImg,
+                canvasX: 100,
+                canvasY: 100
+            });
+            // 创建管道
+            var pipeArr = [];
+            for (var i = 0; i < 6; i++) {
+                var pipe = new Pipe({
+                    ctx: ctx,
+                    topimg: topImg,
+                    bottomimg: bottomImg,
+                    x: 300 + topImg.width * i * 3
+                });
+                pipeArr.push(pipe);
+            }
+            // 创建陆地
+            var landArr = [];
+            for (var i = 0; i < 4; i++) {
+                var land = new Land({
+                    ctx: ctx,
+                    img: landImg,
+                    x: landImg.width * i,
+                    y: c.height - landImg.height
+                });
+                landArr.push(land);
+            }
+
+
+            function fly() {
+                // console.log(offsetT)
+                startT = new Date();
+                offsetT = startT - endT;
+                endT = startT;
+                ctx.clearRect(0, 0, c.width, c.height);
+                ctx.beginPath();
+                // 绘制天空背景
+                sky1.drawSky();
+                sky2.drawSky();
+                // 绘制小鸟
+                bird.drawBird(offsetT);
+                // 绘制管道
+                pipeArr.forEach(function (value, index) {
+                    value.drawPipe();
+                })
+                // 绘制陆地
+                landArr.map(function (value, index) {
+                    value.drawLand();
+                });
+                // 绘制文本
+                gameOver = new Date();
+                var elapseTime = (gameOver - gameStart) / 1000;
+                var hour = parseInt(elapseTime / 3600);
+                var minute = parseInt(elapseTime % 3600 / 60);
+                var second = parseInt(elapseTime % 60);
+                var str = '你已坚持了' + hour + '小时' + minute + '分' + second + '秒';
+                ctx.textBaseline = 'top';
+                ctx.font = '20px 黑体';
+                ctx.fillText(str, 300, 30);
+                // 判断小鸟是否撞上天地
+                if (bird.canvasY < 0 || bird.canvasY > c.height - bird.birdH - landImg.height) {
+                    flag1 = true;
+                    return;
+                }
+                // 判断小鸟是否撞上管道
+                if (ctx.isPointInPath(bird.canvasX + bird.birdW / 2, bird.canvasY + bird.birdH / 2)) {
+                    flag1 = true;
+                    return;
+                }
+                if (flag) {
+                    window.requestAnimationFrame(fly);
+                }
+            }
+            fly();
+            ctx.fillText('点击开始', 400, 200);
+            c.onclick = function () {
+                if (!flag) {
+                    flag = true;
+                    endT = new Date();
+                    fly();
+                    // console.log('abc');
+                } else {
+                    if (flag1) {
+                        window.location.reload();
+                    }
+                    bird.birdSpeed = -0.2;
+                    // console.log('def');
+                }
+            }
+        })
+    </script>
+</body>
+
+</html>
